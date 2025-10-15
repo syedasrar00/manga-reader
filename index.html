@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ReactJS Manga Reader App</title>
+    <title>Manhuwa Reader - Free Manga and Manhua Reading. Fast and Easy to Use!</title>
     <script>
       (function() {
         try {
@@ -15,10 +15,9 @@
           if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
             return document.documentElement.classList.add('dark');
           }
-          // default to dark (night)
           document.documentElement.classList.add('dark');
         } catch (e) {
-          // ignore
+          console.error('Error::',e)
         }
       })();
     </script>
