@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, Star, TrendingUp, BookOpen } from 'lucide-react';
-import { supabase } from '../lib/supabase';
-import type { Manga, Chapter } from '../types/database';
+import { useState, useEffect, useRef } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { Calendar, Star, TrendingUp, BookOpen } from "lucide-react";
+import { supabase } from "../lib/supabase";
+import type { Manga, Chapter } from "../types/database";
 
 export default function MangaDetails() {
   const { id } = useParams<{ id: string }>();
@@ -10,6 +10,7 @@ export default function MangaDetails() {
   const [manga, setManga] = useState<Manga | null>(null);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [loading, setLoading] = useState(true);
+  const mainRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -17,39 +18,48 @@ export default function MangaDetails() {
     }
   }, [id]);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "auto" });
+    setTimeout(() => {
+      mainRef.current?.focus();
+    }, 0);
+  }, []);
+
   const fetchMangaDetails = async () => {
     if (!id) return;
     try {
       setLoading(true);
 
       const [mangaResult, chaptersResult] = await Promise.all([
-        supabase.from('manga').select('*').eq('id', id).maybeSingle(),
-        supabase
-          .from('chapters')
-          .select('*')
-          .eq('manga_id', id)
-          .order('chapter_number', { ascending: false })
+        supabase.from("manga").select("*").eq("id", id).maybeSingle(),
+        supabase.from("chapters").select("*").eq("manga_id", id),
       ]);
 
       if (mangaResult.error) throw mangaResult.error;
       if (chaptersResult.error) throw chaptersResult.error;
+      setManga(mangaResult.data as Manga | null);
 
-  setManga(mangaResult.data as Manga | null);
-  setChapters((chaptersResult.data || []) as Chapter[]);
+    const sortedChapters = (chaptersResult.data || []).sort((a: Chapter, b: Chapter) => {
+      const numA = parseInt(a.title.match(/\d+/)?.[0] || "0", 10);
+      const numB = parseInt(b.title.match(/\d+/)?.[0] || "0", 10);
+      return numB - numA;
+    });
+
+    setChapters(sortedChapters as Chapter[]);
     } catch (error) {
-      console.error('Error fetching manga details:', error);
+      console.error("Error fetching manga details:", error);
     } finally {
       setLoading(false);
     }
   };
 
   const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'Unknown';
+    if (!dateString) return "Unknown";
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
@@ -58,7 +68,9 @@ export default function MangaDetails() {
       <div className="min-h-screen bg-white text-black dark:bg-[#0f0f0f] dark:text-white flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#2D5A27] mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading manga details...</p>
+          <p className="text-gray-600 dark:text-gray-400">
+            Loading manga details...
+          </p>
         </div>
       </div>
     );
@@ -68,9 +80,11 @@ export default function MangaDetails() {
     return (
       <div className="min-h-screen bg-white text-black dark:bg-[#0f0f0f] dark:text-white flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-600 dark:text-gray-400 text-lg mb-4">Manga not found</p>
+          <p className="text-gray-600 dark:text-gray-400 text-lg mb-4">
+            Manga not found
+          </p>
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate("/")}
             className="px-6 py-2 bg-[#2D5A27] text-white rounded-lg hover:bg-[#234a1f] transition-colors"
           >
             Back to Homepage
@@ -80,25 +94,15 @@ export default function MangaDetails() {
     );
   }
 
-  const genresList = manga.genres ? manga.genres.split(',').map(g => g.trim()) : [];
+  const genresList = manga.genres
+    ? manga.genres.split(",").map((g) => g.trim())
+    : [];
 
   return (
     <div className="min-h-screen bg-white text-black dark:bg-[#0f0f0f] dark:text-white">
-      <header className="bg-white dark:bg-[#1a1a1a] border-b border-gray-200 dark:border-[#2D5A27]/30 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <button
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-[#2D5A27] transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span>Back to Homepage</span>
-          </button>
-        </div>
-      </header>
-
       <main className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-            <div className="lg:col-span-1">
+          <div className="lg:col-span-1">
             <div className="sticky top-24">
               <div className="aspect-[3/4] rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xl">
                 {manga.image_url ? (
@@ -122,7 +126,9 @@ export default function MangaDetails() {
             </h1>
 
             {manga.alternative && (
-              <p className="text-gray-400 mb-4">Alternative: {manga.alternative}</p>
+              <p className="text-gray-400 mb-4">
+                Alternative: {manga.alternative}
+              </p>
             )}
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -133,7 +139,7 @@ export default function MangaDetails() {
                     <span className="font-semibold">Rating</span>
                   </div>
                   <p className="text-sm text-gray-400">
-                    {manga.rating.match(/[\d.]+/)?.[0] || 'N/A'} / 5
+                    {manga.rating.match(/[\d.]+/)?.[0] || "N/A"} / 5
                   </p>
                 </div>
               )}
@@ -145,7 +151,7 @@ export default function MangaDetails() {
                     <span className="font-semibold">Rank</span>
                   </div>
                   <p className="text-sm text-gray-400">
-                    {manga.rank.match(/\d+/)?.[0] || 'N/A'}
+                    {manga.rank.match(/\d+/)?.[0] || "N/A"}
                   </p>
                 </div>
               )}
@@ -155,7 +161,9 @@ export default function MangaDetails() {
                   <Calendar className="w-5 h-5" />
                   <span className="font-semibold">Status</span>
                 </div>
-                <p className="text-sm text-gray-400">{manga.status || 'Unknown'}</p>
+                <p className="text-sm text-gray-400">
+                  {manga.status || "Unknown"}
+                </p>
               </div>
 
               <div className="bg-[#1a1a1a] p-4 rounded-lg border border-gray-800">
@@ -163,12 +171,14 @@ export default function MangaDetails() {
                   <BookOpen className="w-5 h-5" />
                   <span className="font-semibold">Type</span>
                 </div>
-                <p className="text-sm text-gray-400">{manga.type || 'Manga'}</p>
+                <p className="text-sm text-gray-400">{manga.type || "Manga"}</p>
               </div>
             </div>
 
             <div className="bg-white dark:bg-[#1a1a1a] p-6 rounded-lg border border-gray-200 dark:border-gray-800 mb-6">
-              <h2 className="text-xl font-semibold mb-3 text-[#2D5A27]">Information</h2>
+              <h2 className="text-xl font-semibold mb-3 text-[#2D5A27]">
+                Information
+              </h2>
               <div className="space-y-2 text-sm">
                 {manga.author && (
                   <div className="flex">
@@ -193,7 +203,9 @@ export default function MangaDetails() {
 
             {genresList.length > 0 && (
               <div className="mb-6">
-                <h2 className="text-xl font-semibold mb-3 text-[#2D5A27]">Genres</h2>
+                <h2 className="text-xl font-semibold mb-3 text-[#2D5A27]">
+                  Genres
+                </h2>
                 <div className="flex flex-wrap gap-2">
                   {genresList.map((genre, index) => (
                     <span
@@ -209,7 +221,9 @@ export default function MangaDetails() {
 
             {manga.description && (
               <div className="bg-[#1a1a1a] p-6 rounded-lg border border-gray-800">
-                <h2 className="text-xl font-semibold mb-3 text-[#2D5A27]">Description</h2>
+                <h2 className="text-xl font-semibold mb-3 text-[#2D5A27]">
+                  Description
+                </h2>
                 <p className="text-gray-300 leading-relaxed whitespace-pre-line">
                   {manga.description}
                 </p>
@@ -224,7 +238,9 @@ export default function MangaDetails() {
           </h2>
 
           {chapters.length === 0 ? (
-            <p className="text-gray-400 text-center py-8">No chapters available yet.</p>
+            <p className="text-gray-400 text-center py-8">
+              No chapters available yet.
+            </p>
           ) : (
             <div className="space-y-2">
               {chapters.map((chapter) => (
