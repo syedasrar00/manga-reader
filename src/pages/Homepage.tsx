@@ -1,200 +1,316 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { BookOpen } from 'lucide-react';
-import { supabase } from '../lib/supabase';
-import type { Manga } from '../types/database';
-import { useSearchFilters } from '../lib/searchFilter';
+import { useState, useEffect, useRef } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import {
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  BookOpen,
+  Menu,
+} from "lucide-react";
+import { supabase } from "../lib/supabase";
+import type { Chapter, ChapterImage, Manga } from "../types/database";
+import { ArrowUp } from "lucide-react";
 
-export default function Homepage() {
-  const [manga, setManga] = useState<Manga[]>([]);
+export default function ChapterReader() {
+  const { id, chapterNumber } = useParams<{
+    id: string;
+    chapterNumber: string;
+  }>();
+  const navigate = useNavigate();
+  const [manga, setManga] = useState<Manga | null>(null);
+  const [chapter, setChapter] = useState<Chapter | null>(null);
+  const [images, setImages] = useState<ChapterImage[]>([]);
+  const [allChapters, setAllChapters] = useState<Chapter[]>([]);
   const [loading, setLoading] = useState(true);
-  // search/filters are provided by SearchFilterProvider via Header
-  const { searchQuery, selectedGenre, selectedStatus } = useSearchFilters();
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
+  const [showMenu, setShowMenu] = useState(false);
+  const [showGoTop, setShowGoTop] = useState(false);
+  const [headerHidden, setHeaderHidden] = useState(false);
+  const lastY = useRef(0);
+  const headerRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    fetchManga();
+    if (id && chapterNumber) {
+      fetchChapterData();
+    }
+  }, [id, chapterNumber]);
+
+  // ensure header is visible and focused whenever the chapter changes
+  useEffect(() => {
+    // reset header visibility
+    setHeaderHidden(false);
+    // jump to top immediately
+    window.scrollTo({ top: 0, behavior: "auto" });
+    // focus header for accessibility so top remains in view
+    setTimeout(() => {
+      headerRef.current?.focus();
+    }, 0);
+  }, [chapterNumber]);
+
+  useEffect(() => {
+    const onScroll = () => {
+      setShowGoTop(window.scrollY > 300);
+    };
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const fetchManga = async () => {
+  // hide chapter header on scroll down, show on scroll up
+  useEffect(() => {
+    lastY.current = window.scrollY;
+    let rafId: number | null = null;
+    const onScroll = () => {
+      if (rafId) return;
+      rafId = window.requestAnimationFrame(() => {
+        const y = window.scrollY;
+        const delta = y - lastY.current;
+        if (delta > 10 && y > 80) {
+          setHeaderHidden(true);
+        } else if (delta < -10) {
+          setHeaderHidden(false);
+        }
+        lastY.current = y;
+        rafId = null;
+      });
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (rafId) window.cancelAnimationFrame(rafId);
+    };
+  }, []);
+
+  const fetchChapterData = async () => {
+    if (!id || !chapterNumber) return;
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('manga')
-        .select('*')
-        .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setManga(data || []);
+      const [mangaResult, chaptersResult] = await Promise.all([
+        supabase.from("manga").select("*").eq("id", id).maybeSingle(),
+        supabase
+          .from("chapters")
+          .select("*")
+          .eq("manga_id", id)
+          .order("chapter_number", { ascending: false }),
+      ]);
+
+      if (mangaResult.error) throw mangaResult.error;
+      if (chaptersResult.error) throw chaptersResult.error;
+
+      setManga(mangaResult.data as Manga | null);
+      const chapters = (chaptersResult.data || []) as Chapter[];
+      setAllChapters(chapters);
+
+      const currentChapter = chapters.find(
+        (c) => c.chapter_number === parseFloat(chapterNumber!)
+      );
+
+      if (currentChapter) {
+        setChapter(currentChapter);
+
+        const { data: imagesData, error: imagesError } = await supabase
+          .from("chapter_images")
+          .select("*")
+          .eq("chapter_id", currentChapter.id)
+          .order("page_number", { ascending: true });
+
+        if (imagesError) throw imagesError;
+        setImages(imagesData || []);
+      }
     } catch (error) {
-      console.error('Error fetching manga:', error);
+      console.error("Error fetching chapter data:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const allGenres = useMemo(() => {
-    const genresSet = new Set<string>();
-    manga.forEach(m => {
-      if (m.genres) {
-        m.genres.split(',').forEach(g => genresSet.add(g.trim()));
-      }
-    });
-    return Array.from(genresSet).sort();
-  }, [manga]);
+  const currentIndex = allChapters.findIndex(
+    (c) => c.chapter_number === parseFloat(chapterNumber!)
+  );
+  const prevChapter = allChapters[currentIndex + 1];
+  const nextChapter = allChapters[currentIndex - 1];
 
-  // provide genres to global filters
-  const { setAllGenres } = useSearchFilters();
-  useEffect(() => {
-    setAllGenres(allGenres);
-  }, [allGenres, setAllGenres]);
-
-  const filteredManga = useMemo(() => {
-    return manga.filter(m => {
-      const matchesSearch = !searchQuery ||
-        m.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (m.alternative && m.alternative.toLowerCase().includes(searchQuery.toLowerCase()));
-
-      const matchesGenre = !selectedGenre ||
-        (m.genres && m.genres.toLowerCase().includes(selectedGenre.toLowerCase()));
-
-      const matchesStatus = !selectedStatus ||
-        (m.status && m.status.toLowerCase() === selectedStatus.toLowerCase());
-
-      return matchesSearch && matchesGenre && matchesStatus;
-    });
-  }, [manga, searchQuery, selectedGenre, selectedStatus]);
-
-  // Reset page to 1 when search or filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, selectedGenre, selectedStatus]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredManga.length / itemsPerPage));
-
-  // Ensure currentPage is within bounds when filtered results change
-  useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
-    }
-  }, [currentPage, totalPages]);
-
-  const paginatedManga = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filteredManga.slice(start, start + itemsPerPage);
-  }, [filteredManga, currentPage]);
+  const navigateToChapter = (chapterNum: number) => {
+    // ensure header is visible when switching chapters programmatically
+    setHeaderHidden(false);
+    navigate(`/manga/${id}/chapter/${chapterNum}`);
+    // immediate jump to top (the effect above will also run on chapterNumber change)
+    window.scrollTo({ top: 0, behavior: "auto" });
+  };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-white text-black dark:bg-[#0f0f0f] dark:text-white flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#2D5A27] mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading manga...</p>
+          <p className="text-gray-600 dark:text-gray-400">Loading chapter...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!chapter || !manga) {
+    return (
+      <div className="min-h-screen bg-white text-black dark:bg-[#0f0f0f] dark:text-white flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600 dark:text-gray-400 text-lg mb-4">
+            Chapter not found
+          </p>
+          <button
+            onClick={() => navigate(`/manga/${id}`)}
+            className="px-6 py-2 bg-[#2D5A27] text-white rounded-lg hover:bg-[#234a1f] transition-colors"
+          >
+            Back to Manga Details
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white text-black dark:bg-[#0f0f0f] dark:text-white">
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-6 flex items-center justify-between">
-          <p className="text-gray-600 dark:text-gray-400">
-            Showing {paginatedManga.length} of {filteredManga.length} results ({manga.length} total)
-          </p>
-          <div className="text-gray-400 text-sm">Page {currentPage} / {totalPages}</div>
-        </div>
+    <div className="min-h-screen bg-white text-black dark:bg-[#0f0f0f] dark:text-white overflow-x-hidden">
+      <div
+        className={`sticky top-0 z-50 transform transition-transform duration-300 ${
+          headerHidden && !showMenu ? "-translate-y-full" : "translate-y-0"
+        }`}
+      >
+        <header
+          ref={headerRef}
+          tabIndex={-1}
+          className="bg-white dark:bg-[#1a1a1a] border-b border-gray-200 dark:border-[#2D5A27]/30"
+        >
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <Link
+                to={`/manga/${id}`}
+                className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-[#2D5A27] transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                <span className="hidden sm:inline">Back to Details</span>
+              </Link>
 
-        {filteredManga.length === 0 ? (
+              <div className="flex-1 mx-4 text-center">
+                <h1 className="font-semibold text-sm sm:text-base truncate text-[#2D5A27]">
+                  {manga.title}
+                </h1>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  {chapter.title}
+                </p>
+              </div>
+
+              <button
+                onClick={() => {
+                  // when opening the chapter list ensure the header is visible
+                  if (!showMenu) setHeaderHidden(false);
+                  setShowMenu(!showMenu);
+                }}
+                className="p-2 text-gray-400 hover:text-[#2D5A27] transition-colors"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+            </div>
+
+            {showMenu && (
+              <div className="mt-4 p-4 bg-white dark:bg-[#0f0f0f] rounded-lg border border-gray-200 dark:border-gray-800">
+                <h3 className="font-semibold mb-2 text-[#2D5A27]">
+                  All Chapters
+                </h3>
+                <div className="max-h-64 overflow-y-auto space-y-1">
+                  {allChapters.map((ch) => (
+                    <button
+                      key={ch.id}
+                      onClick={() => {
+                        navigateToChapter(ch.chapter_number);
+                        setShowMenu(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded transition-colors ${
+                        ch.chapter_number === parseFloat(chapterNumber!)
+                          ? "bg-[#2D5A27] text-white"
+                          : "bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-400 hover:bg-[#2D5A27]/20 hover:text-white"
+                      }`}
+                    >
+                      {ch.title}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </header>
+      </div>
+
+      <main className="container mx-auto max-w-4xl px-1 py-8 overflow-x-hidden">
+        {images.length === 0 ? (
           <div className="text-center py-16">
-            <p className="text-gray-500 text-lg">No manga found matching your criteria.</p>
+            <BookOpen className="w-16 h-16 text-gray-700 mx-auto mb-4" />
+            <p className="text-gray-400 text-lg">
+              No images available for this chapter.
+            </p>
           </div>
         ) : (
-          <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-              {paginatedManga.map((m) => (
-              <Link
-                key={m.id}
-                to={`/manga/${m.id}`}
-                className="group bg-white dark:bg-[#1a1a1a] rounded-lg overflow-hidden border border-gray-200 dark:border-gray-800 hover:border-[#2D5A27] transition-all duration-300 hover:shadow-lg hover:shadow-[#2D5A27]/20 hover:-translate-y-1"
-              >
-                <div className="aspect-[3/4] overflow-hidden bg-gray-100 dark:bg-gray-900">
-                  {m.image_url ? (
-                    <img
-                      src={m.image_url}
-                      alt={m.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <BookOpen className="w-12 h-12 text-gray-400 dark:text-gray-700" />
-                    </div>
-                  )}
-                </div>
-
-                <div className="p-3">
-                  <h3 className="font-semibold text-sm line-clamp-2 mb-2 group-hover:text-[#2D5A27] transition-colors text-black dark:text-white">
-                    {m.title}
-                  </h3>
-
-                  {m.rating && (
-                    <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 mb-1">
-                      <span>⭐</span>
-                      <span>{m.rating.match(/[\d.]+/)?.[0] || 'N/A'}</span>
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="px-2 py-1 bg-[#2D5A27]/20 text-[#2D5A27] rounded">
-                      {m.type || 'Manga'}
-                    </span>
-                    <span className={`px-2 py-1 rounded ${
-                      m.status === 'OnGoing'
-                        ? 'bg-blue-500/20 text-blue-400'
-                        : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-400'
-                    }`}>
-                      {m.status || 'Unknown'}
-                    </span>
-                  </div>
-                </div>
-              </Link>
+          <div>
+            {images.map((image, index) => (
+              <div key={image.id} className="overflow-hidden mb-0">
+                <img
+                  src={image.image_url}
+                  alt={`Page ${image.page_number}`}
+                  className="w-full h-auto block"
+                  loading={index < 3 ? "eager" : "lazy"}
+                  decoding="async"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src =
+                      'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="800" height="1200"%3E%3Crect width="800" height="1200" fill="%231a1a1a"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" fill="%23666" font-size="20"%3EImage not available%3C/text%3E%3C/svg%3E';
+                  }}
+                />
+              </div>
             ))}
           </div>
-
-          {/* Pagination controls */}
-          <div className="mt-6 flex items-center justify-center gap-2">
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className={`px-3 py-1 rounded-md border ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : 'border-gray-700 hover:border-[#2D5A27]'}`}
-            >
-              Prev
-            </button>
-
-            {/* Show a small range of page numbers around the current page */}
-            {Array.from({ length: totalPages }, (_, i) => i + 1).slice(Math.max(0, currentPage - 3), Math.min(totalPages, currentPage + 2)).map(page => (
-              <button
-                key={page}
-                onClick={() => setCurrentPage(page)}
-                className={`px-3 py-1 rounded-md border ${page === currentPage ? 'bg-[#2D5A27] text-black border-[#2D5A27]' : 'border-gray-700 hover:border-[#2D5A27]'}`}
-              >
-                {page}
-              </button>
-            ))}
-
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className={`px-3 py-1 rounded-md border ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : 'border-gray-700 hover:border-[#2D5A27]'}`}
-            >
-              Next
-            </button>
-          </div>
-          </>
         )}
+
+        <div className="mt-8 flex gap-4 justify-between items-center py-6 border-t border-gray-800">
+          {prevChapter ? (
+            <button
+              onClick={() => navigateToChapter(prevChapter.chapter_number)}
+              className="flex items-center gap-2 px-6 py-3 bg-[#2D5A27] text-white rounded-lg hover:bg-[#234a1f] transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5" />
+              <div className="text-left">
+                <div className="text-xs text-gray-300">Previous</div>
+                <div className="text-sm font-semibold">{prevChapter.title}</div>
+              </div>
+            </button>
+          ) : (
+            <div className="flex-1"></div>
+          )}
+
+          {nextChapter ? (
+            <button
+              onClick={() => navigateToChapter(nextChapter.chapter_number)}
+              className="flex items-center gap-2 px-6 py-3 bg-[#2D5A27] text-white rounded-lg hover:bg-[#234a1f] transition-colors"
+            >
+              <div className="text-right">
+                <div className="text-xs text-gray-300">Next</div>
+                <div className="text-sm font-semibold">{nextChapter.title}</div>
+              </div>
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          ) : (
+            <div className="flex-1"></div>
+          )}
+        </div>
       </main>
+
+      {/* Go to top button */}
+      {showGoTop && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          aria-label="Go to top"
+          className="fixed bottom-6 right-6 p-3 rounded-full bg-[#2D5A27] text-white shadow-lg hover:bg-[#234a1f] transition-colors"
+        >
+          <ArrowUp className="w-5 h-5" />
+        </button>
+      )}
     </div>
   );
 }
