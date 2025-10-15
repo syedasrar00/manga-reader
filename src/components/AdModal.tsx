@@ -11,6 +11,8 @@ import { useEffect, useState } from "react";
 const LAST_AD_CLICK_KEY = "lastAdClickTimestamp";
 const HIDE_HOURS = 24;
 
+import adPlaceholder from "../../ad_image.png";
+
 export default function AdModal(): JSX.Element | null {
   const [visible, setVisible] = useState(false);
 
@@ -133,7 +135,7 @@ export default function AdModal(): JSX.Element | null {
           rel="noopener noreferrer"
           onClick={handleAdClick}
         >
-          <img src="ad_image.png" alt="Ad" className="m-auto" />
+          <img src={adPlaceholder} alt="Ad" className="m-auto" />
         </a>
         <div className="flex gap-3">
           <a

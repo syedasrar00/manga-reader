@@ -3,7 +3,7 @@ import { useSearchFilters } from "../lib/searchFilter";
 import { useTheme } from "../lib/useTheme";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-
+import logo from "../../favicon-32x32.png";
 function ThemeToggleInline() {
   const { theme, setTheme } = useTheme();
 
@@ -114,7 +114,7 @@ export default function Header() {
                 className="flex items-center gap-2 p-1 rounded-sm text-[#2e6d26] sm:hidden"
                 aria-label="Go to homepage"
               >
-                <img src="favicon-32x32.png" className="rounded-lg" />
+                <img src={logo} className="rounded-lg" />
                 <span className="text-lg font-semibold">MangaFlow</span>
               </button>
 
@@ -124,7 +124,7 @@ export default function Header() {
                 onClick={() => navigate("/")}
                 style={{ cursor: "pointer" }}
               >
-                <img src="favicon-32x32.png" className="w-8 h-8 rounded-lg" />
+                <img src={logo} className="w-8 h-8 rounded-lg" />
                 <h1 className="text-2xl font-bold text-[#2e6d26]">MangaFlow</h1>
               </div>
             </div>
