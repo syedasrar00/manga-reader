@@ -23,7 +23,7 @@ export default function Homepage() {
       const { data, error } = await supabase
         .from("manga")
         .select("*")
-        .order("published_date", { ascending: false });
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       setManga(data || []);
