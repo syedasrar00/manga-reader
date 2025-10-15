@@ -1,28 +1,43 @@
-import { BookOpen, Search, Filter, Moon, Sun, X } from 'lucide-react';
-import { useSearchFilters } from '../lib/searchFilter';
-import { useTheme } from '../lib/useTheme';
-import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Menu, Search, Filter, Moon, Sun, X } from "lucide-react";
+import { useSearchFilters } from "../lib/searchFilter";
+import { useTheme } from "../lib/useTheme";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 function ThemeToggleInline() {
   const { theme, setTheme } = useTheme();
 
   return (
     <button
-      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-      aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+      aria-label={
+        theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
+      }
       className="p-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#111827] hover:border-[#2D5A27]"
     >
-      {theme === 'dark' ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-gray-700" />}
+      {theme === "dark" ? (
+        <Sun className="w-5 h-5 text-yellow-400" />
+      ) : (
+        <Moon className="w-5 h-5 text-gray-700" />
+      )}
     </button>
   );
 }
 
 export default function Header() {
-  const { searchQuery, setSearchQuery, selectedGenre, setSelectedGenre, selectedStatus, setSelectedStatus, allGenres } = useSearchFilters();
+  const {
+    searchQuery,
+    setSearchQuery,
+    selectedGenre,
+    setSelectedGenre,
+    selectedStatus,
+    setSelectedStatus,
+    allGenres,
+  } = useSearchFilters();
 
   const navigate = useNavigate();
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const mobileSearchRef = useRef<HTMLDivElement | null>(null);
   const mobileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -36,7 +51,7 @@ export default function Header() {
     mobileInputRef.current?.focus();
 
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsMobileSearchOpen(false);
+      if (e.key === "Escape") setIsMobileSearchOpen(false);
     };
 
     const onClickOutside = (e: MouseEvent) => {
@@ -46,17 +61,17 @@ export default function Header() {
       }
     };
 
-    window.addEventListener('keydown', onKey);
-    window.addEventListener('pointerdown', onClickOutside);
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("pointerdown", onClickOutside);
     return () => {
-      window.removeEventListener('keydown', onKey);
-      window.removeEventListener('pointerdown', onClickOutside);
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("pointerdown", onClickOutside);
     };
   }, [isMobileSearchOpen]);
 
   // scroll hide/show
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
     lastY.current = window.scrollY;
     let rafId: number | null = null;
 
@@ -75,15 +90,19 @@ export default function Header() {
       });
     };
 
-    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
-      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener("scroll", onScroll);
       if (rafId) window.cancelAnimationFrame(rafId);
     };
   }, []);
 
   return (
-    <div className={`sticky top-0 z-50 transform transition-transform duration-300 ${hidden ? '-translate-y-full' : 'translate-y-0'}`}>
+    <div
+      className={`sticky top-0 z-50 transform transition-transform duration-300 ${
+        hidden ? "-translate-y-full" : "translate-y-0"
+      }`}
+    >
       <header className="bg-white dark:bg-[#1a1a1a] border-b border-gray-200 dark:border-[#2D5A27]/30">
         <div className="container mx-auto px-4 py-4 relative">
           <div className="flex items-center justify-between gap-4">
@@ -91,18 +110,22 @@ export default function Header() {
             <div className="flex items-center gap-3 flex-shrink-0">
               {/* mobile: show icon to open search */}
               <button
-                onClick={() => navigate('/')}
-                className="flex items-center gap-2 p-1 rounded-sm text-[#2D5A27] sm:hidden"
+                onClick={() => navigate("/")}
+                className="flex items-center gap-2 p-1 rounded-sm text-[#2e6d26] sm:hidden"
                 aria-label="Go to homepage"
               >
-                <BookOpen className="w-8 h-8" />
-                <span className="text-lg font-semibold">MangaVerse</span>
+                <img src="favicon-32x32.png" className="rounded-lg" />
+                <span className="text-lg font-semibold">MangaFlow</span>
               </button>
 
               {/* desktop: show full logo */}
-              <div className="hidden sm:flex items-center gap-3" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
-                <BookOpen className="w-8 h-8 text-[#2D5A27]" />
-                <h1 className="text-2xl font-bold text-[#2D5A27]">MangaVerse</h1>
+              <div
+                className="hidden sm:flex items-center gap-3"
+                onClick={() => navigate("/")}
+                style={{ cursor: "pointer" }}
+              >
+                <img src="favicon-32x32.png" className="w-8 h-8 rounded-lg" />
+                <h1 className="text-2xl font-bold text-[#2e6d26]">MangaFlow</h1>
               </div>
             </div>
 
@@ -128,7 +151,11 @@ export default function Header() {
                     className="pl-10 pr-8 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-[#2D5A27] text-black appearance-none cursor-pointer dark:bg-[#0f0f0f] dark:border-gray-700 dark:text-white"
                   >
                     <option value="">All Genres</option>
-                    {allGenres.map(g => <option key={g} value={g}>{g}</option>)}
+                    {allGenres.map((g) => (
+                      <option key={g} value={g}>
+                        {g}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -146,20 +173,32 @@ export default function Header() {
               <div className="hidden sm:inline-flex">
                 <ThemeToggleInline />
               </div>
-                {/* mobile search trigger on the right side */}
-                <button
-                  onClick={() => setIsMobileSearchOpen(true)}
-                  className="p-1 sm:hidden"
-                  aria-label="Open search"
-                >
-                  <Search className="w-6 h-6 text-gray-600" />
-                </button>
+
+              {/* mobile search trigger on the right side */}
+              <button
+                onClick={() => setIsMobileSearchOpen(true)}
+                className="p-1 sm:hidden"
+                aria-label="Open search"
+              >
+                <Search className="w-6 h-6 text-gray-600" />
+              </button>
+              {/* mobile nav toggle (filters + theme) */}
+              <button
+                onClick={() => setIsMobileNavOpen(true)}
+                className="p-2 sm:hidden"
+                aria-label="Open filters and theme"
+              >
+                <Menu className="w-6 h-6 text-gray-600" />
+              </button>
             </div>
           </div>
 
           {/* Mobile search overlay/input when opened */}
           {isMobileSearchOpen && (
-            <div ref={mobileSearchRef} className="absolute left-4 right-4 top-4 z-50 sm:hidden">
+            <div
+              ref={mobileSearchRef}
+              className="absolute left-4 right-4 top-4 z-50 sm:hidden"
+            >
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
@@ -177,6 +216,74 @@ export default function Header() {
                   <X className="w-5 h-5 text-gray-600" />
                 </button>
               </div>
+            </div>
+          )}
+          {/* Mobile side nav / drawer for filters + theme */}
+          {isMobileNavOpen && (
+            <div className="fixed inset-0 z-40 flex">
+              <div
+                className="fixed inset-0 bg-black/40 "
+                onClick={() => setIsMobileNavOpen(false)}
+                aria-hidden
+              />
+
+              <aside className="relative ml-auto w-80 max-w-full bg-transparent shadow-xl p-4">
+                <div className="flex items-center justify-between bg-white dark:bg-[#0b0b0b] px-2 py-1 rounded-t-md">
+                  <h2 className="text-lg font-semibold">Filters</h2>
+                  <button
+                    onClick={() => setIsMobileNavOpen(false)}
+                    aria-label="Close filters"
+                    className="p-2"
+                  >
+                    <X className="w-5 h-5 text-gray-600" />
+                  </button>
+                </div>
+
+                <div className="space-y-4 bg-white dark:bg-[#0b0b0b] px-4 py-2 rounded-b-lg">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Genre
+                    </label>
+                    <div className="relative">
+                      <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                      <select
+                        value={selectedGenre}
+                        onChange={(e) => setSelectedGenre(e.target.value)}
+                        className="w-full pl-10 pr-3 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-[#2D5A27] text-black appearance-none dark:bg-[#0f0f0f] dark:border-gray-700 dark:text-white"
+                      >
+                        <option value="">All Genres</option>
+                        {allGenres.map((g) => (
+                          <option key={g} value={g}>
+                            {g}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Status
+                    </label>
+                    <select
+                      value={selectedStatus}
+                      onChange={(e) => setSelectedStatus(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-[#2D5A27] text-black appearance-none dark:bg-[#0f0f0f] dark:border-gray-700 dark:text-white"
+                    >
+                      <option value="">All Status</option>
+                      <option value="OnGoing">Ongoing</option>
+                      <option value="Completed">Completed</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-sm text-gray-900 dark:text-gray-100">
+                      Theme
+                    </span>
+                    <ThemeToggleInline />
+                  </div>
+                </div>
+              </aside>
             </div>
           )}
         </div>
