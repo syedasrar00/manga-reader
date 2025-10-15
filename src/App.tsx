@@ -5,6 +5,7 @@ import ChapterReader from './pages/ChapterReader';
 import { useTheme } from './lib/useTheme';
 import Header from './components/Header';
 import { SearchFilterProvider } from './lib/searchFilter';
+import AdModal from './components/AdModal';
 
 function App() {
   // initialize theme on app load
@@ -12,6 +13,7 @@ function App() {
   return (
     <Router>
       <SearchFilterProvider>
+        <AdModal />
         <Header />
         <Routes>
           <Route path="/" element={<Homepage />} />
