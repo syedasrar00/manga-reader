@@ -23,7 +23,7 @@ export default function Homepage() {
       const { data, error } = await supabase
         .from("manga")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("published_date", { ascending: false });
 
       if (error) throw error;
       setManga(data || []);
@@ -243,7 +243,7 @@ export default function Homepage() {
                           <div className="flex justify-between items-center">
                             <span className="truncate">{ch.title}</span>
                             <span className="ml-2 text-xs text-gray-400">
-                              {formatDate(ch.created_at)}
+                              {formatDate(ch.published_date)}
                             </span>
                           </div>
                         </Link>
