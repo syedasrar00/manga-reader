@@ -8,14 +8,12 @@ export function useTheme() {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved === 'light' || saved === 'dark') return saved;
     } catch (e) {
-      // ignore
+      console.error('Error accessing localStorage', e);
     }
 
     if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
       return 'dark';
     }
-
-    // Default to dark (night) if no saved preference and no system preference
     return 'dark';
   });
 
@@ -30,7 +28,7 @@ export function useTheme() {
     try {
       localStorage.setItem(STORAGE_KEY, theme);
     } catch (e) {
-      // ignore
+      console.error('Error saving to localStorage', e);
     }
   }, [theme]);
 
