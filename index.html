@@ -12,11 +12,11 @@
   <link rel="manifest" href="/site.webmanifest" />
 
   <!-- Windows tile (uses the favicon/png as tile image) -->
-  <meta name="msapplication-TileColor" content="#ffffff" />
+  <meta name="msapplication-TileColor" content="#808080" />
   <meta name="msapplication-TileImage" content="/favicon-32x32.png" />
-  <meta name="theme-color" content="#ffffff" />
+  <meta name="theme-color" content="#808080" />
 
-    <title>MangaFlow | Free Manga & Manhua - Just One Ad Per 24 Hours</title>
+    <title>MangaFlow | Free Manga & Manhua - Just One Ad Per Day</title>
 
     <meta name="description" content="Tired of constant ad interruptions? At MangaFlow, read thousands of manga and manhua titles for free. Our promise is simple: watch a single ad to unlock a completely ad-free reading experience for the next 24 hours." />
 
@@ -39,8 +39,30 @@
     </script>
   </head>
   <body>
+    <!-- Minimal inline splash screen shown while the app loads (visible on PWA launch) -->
+    <div id="pwa-splash" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#808080;z-index:99999;">
+      <img id="pwa-logo" src="/android-chrome-512x512.png" alt="logo" style="width:120px;height:120px;border-radius:10px;object-fit:cover;box-shadow:0 6px 18px rgba(0,0,0,0.25);" />
+    </div>
     <div id="root"></div>
     
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Remove the splash screen once the app has mounted. The React app should call
+      // `window.__appMounted = true` when it's ready, but we also set a fallback timeout.
+      (function(){
+        function removeSplash(){
+          var s = document.getElementById('pwa-splash');
+          if(!s) return;
+          s.style.transition = 'opacity 300ms ease';
+          s.style.opacity = '0';
+          setTimeout(function(){ if(s && s.parentNode) s.parentNode.removeChild(s); }, 350);
+        }
+        // If the app sets this flag, remove immediately.
+        if(window.__appMounted) removeSplash();
+        // Otherwise wait for the 'load' event or 2.5s whichever is earlier
+        window.addEventListener('load', function(){ setTimeout(removeSplash, 80); });
+        setTimeout(removeSplash, 2500);
+      })();
+    </script>
   </body>
 </html>
