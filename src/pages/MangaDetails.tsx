@@ -63,6 +63,20 @@ export default function MangaDetails() {
     });
   };
 
+  const navigateToFirst = () => {
+    if (!id || chapters.length === 0) return;
+    const nums = chapters.map((c) => Number((c as any).chapter_number));
+    const min = Math.min(...nums.filter((n) => !Number.isNaN(n)));
+    if (Number.isFinite(min)) navigate(`/manga/${id}/chapter/${min}`);
+  };
+
+  const navigateToLast = () => {
+    if (!id || chapters.length === 0) return;
+    const nums = chapters.map((c) => Number((c as any).chapter_number));
+    const max = Math.max(...nums.filter((n) => !Number.isNaN(n)));
+    if (Number.isFinite(max)) navigate(`/manga/${id}/chapter/${max}`);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-white text-black dark:bg-[#0f0f0f] dark:text-white flex items-center justify-center">
@@ -229,6 +243,33 @@ export default function MangaDetails() {
                 </p>
               </div>
             )}
+
+            {/* First / Last page buttons (placed after description and before chapter list) */}
+            <div className="flex justify-between mt-6 w-full">
+              <button
+                onClick={navigateToFirst}
+                disabled={chapters.length === 0}
+                className={`w-[190px] p-8 font-bold rounded-lg text-white transition-colors ${
+                  chapters.length === 0
+                    ? "bg-gray-500 cursor-not-allowed"
+                    : "bg-[#2D5A27] hover:bg-[#234a1f]"
+                }`}
+              >
+                First Chapter
+              </button>
+
+              <button
+                onClick={navigateToLast}
+                disabled={chapters.length === 0}
+                className={`w-[190px] p-8 font-bold rounded-lg text-white transition-colors ${
+                  chapters.length === 0
+                    ? "bg-gray-500 cursor-not-allowed"
+                    : "bg-[#2D5A27] hover:bg-[#234a1f]"
+                }`}
+              >
+                Last Chapter
+              </button>
+            </div>
           </div>
         </div>
 
