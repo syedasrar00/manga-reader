@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
  *   cleared by the user or expire after 24 hours.
  */
 const LAST_AD_CLICK_KEY = "lastAdClickTimestamp";
-const HIDE_HOURS = 24;
+const HIDE_HOURS = 12;
 
 import adPlaceholder from "../../ad_image.png";
 
@@ -153,3 +153,4 @@ export default function AdModal(): JSX.Element | null {
     </div>
   );
 }
+
