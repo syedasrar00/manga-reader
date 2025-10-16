@@ -2,7 +2,7 @@ import { Menu, Search, Filter, Moon, Sun, X } from "lucide-react";
 import { useSearchFilters } from "../lib/searchFilter";
 import { useTheme } from "../lib/useTheme";
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import logo from "../../favicon-32x32.png";
 function ThemeToggleInline() {
   const { theme, setTheme } = useTheme();
@@ -36,6 +36,7 @@ export default function Header() {
   } = useSearchFilters();
 
   const navigate = useNavigate();
+  const location = useLocation();
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const mobileSearchRef = useRef<HTMLDivElement | null>(null);
@@ -68,6 +69,12 @@ export default function Header() {
       window.removeEventListener("pointerdown", onClickOutside);
     };
   }, [isMobileSearchOpen]);
+
+  // close mobile overlays when route changes
+  useEffect(() => {
+    setIsMobileSearchOpen(false);
+    setIsMobileNavOpen(false);
+  }, [location.pathname]);
 
   // scroll hide/show
   useEffect(() => {
@@ -129,67 +136,74 @@ export default function Header() {
               </div>
             </div>
 
-            {/* Desktop search */}
-            <div className="relative flex-1 mx-4 hidden sm:block">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-[#2D5A27] text-black placeholder-gray-400 dark:bg-[#0f0f0f] dark:border-gray-700 dark:text-white dark:placeholder-gray-500"
-                placeholder="Search manga by title or alternative name..."
-              />
-            </div>
+            {/* Desktop search (only on homepage) */}
+            {location.pathname === "/" && (
+              <div className="relative flex-1 mx-4 hidden sm:block">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-[#2D5A27] text-black placeholder-gray-400 dark:bg-[#0f0f0f] dark:border-gray-700 dark:text-white dark:placeholder-gray-500"
+                  placeholder="Search manga by title or alternative name..."
+                />
+              </div>
+            )}
 
             {/* Right controls */}
             <div className="flex items-center gap-3 flex-shrink-0">
-              <div className="hidden md:flex items-center gap-3">
-                <div className="relative">
-                  <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+              {location.pathname === "/" && (
+                <div className="hidden md:flex items-center gap-3">
+                  <div className="relative">
+                    <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                    <select
+                      value={selectedGenre}
+                      onChange={(e) => setSelectedGenre(e.target.value)}
+                      className="pl-10 pr-8 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-[#2D5A27] text-black appearance-none cursor-pointer dark:bg-[#0f0f0f] dark:border-gray-700 dark:text-white"
+                    >
+                      <option value="">All Genres</option>
+                      {allGenres.map((g) => (
+                        <option key={g} value={g}>
+                          {g}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
                   <select
-                    value={selectedGenre}
-                    onChange={(e) => setSelectedGenre(e.target.value)}
-                    className="pl-10 pr-8 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-[#2D5A27] text-black appearance-none cursor-pointer dark:bg-[#0f0f0f] dark:border-gray-700 dark:text-white"
+                    value={selectedStatus}
+                    onChange={(e) => setSelectedStatus(e.target.value)}
+                    className="px-4 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-[#2D5A27] text-black appearance-none cursor-pointer dark:bg-[#0f0f0f] dark:border-gray-700 dark:text-white"
                   >
-                    <option value="">All Genres</option>
-                    {allGenres.map((g) => (
-                      <option key={g} value={g}>
-                        {g}
-                      </option>
-                    ))}
+                    <option value="">All Status</option>
+                    <option value="OnGoing">Ongoing</option>
+                    <option value="Completed">Completed</option>
                   </select>
                 </div>
-
-                <select
-                  value={selectedStatus}
-                  onChange={(e) => setSelectedStatus(e.target.value)}
-                  className="px-4 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-[#2D5A27] text-black appearance-none cursor-pointer dark:bg-[#0f0f0f] dark:border-gray-700 dark:text-white"
-                >
-                  <option value="">All Status</option>
-                  <option value="OnGoing">Ongoing</option>
-                  <option value="Completed">Completed</option>
-                </select>
-              </div>
+              )}
 
               <div className="hidden sm:inline-flex">
                 <ThemeToggleInline />
               </div>
 
-              {/* mobile search trigger on the right side */}
-              <button
-                onClick={() => setIsMobileSearchOpen(true)}
-                className="p-1 sm:hidden"
-                aria-label="Open search"
-              >
-                <Search className="w-6 h-6 text-gray-600" />
-              </button>
-              {/* mobile nav toggle (filters + theme) */}
-              <button
-                onClick={() => setIsMobileNavOpen(true)}
-                className="p-2 sm:hidden"
-                aria-label="Open filters and theme"
-              >
-                <Menu className="w-6 h-6 text-gray-600" />
-              </button>
+              {/* mobile search trigger and mobile nav toggle (only on homepage) */}
+              {location.pathname === "/" && (
+                <>
+                  <button
+                    onClick={() => setIsMobileSearchOpen(true)}
+                    className="p-1 sm:hidden"
+                    aria-label="Open search"
+                  >
+                    <Search className="w-6 h-6 text-gray-600" />
+                  </button>
+                  <button
+                    onClick={() => setIsMobileNavOpen(true)}
+                    className="p-2 sm:hidden"
+                    aria-label="Open filters and theme"
+                  >
+                    <Menu className="w-6 h-6 text-gray-600" />
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
